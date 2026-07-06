@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+mscguardrails/
+
+# Secrets
+.env
+.env.*
+*.key
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Development/intermediate outputs
+results/dev/
+results/logs/
+results/reviews/
+analysis/
+archive/
+vectorstore/
+scripts_dev/

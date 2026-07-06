@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: guardrail-eval
+Version: 0.1.0
+Summary: Experiment pipeline for MSc guardrail evaluation
+Requires-Python: >=3.10

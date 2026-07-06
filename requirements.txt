@@ -1,0 +1,16 @@
+# Minimal requirements for the MSc Guardrails academic release.
+#
+# This file intentionally avoids a full `pip freeze` environment dump.
+# It includes only the packages needed to run the refactored experiment code,
+# offline tests, dataset freeze verification, and final analysis/chart scripts.
+
+openai==2.38.0
+python-dotenv==1.2.2
+
+pytest>=8.0.0
+
+pandas==2.2.3
+numpy==2.0.2
+matplotlib==3.9.2
+scipy==1.14.1
+scikit-learn==1.5.2
