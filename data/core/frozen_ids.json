@@ -1,10 +1,10 @@
 {
   "_comment": "Frozen `example_id` values for the dissertation core dataset. Written before the first experiment run. Commit this file to git immediately after generation. The git commit timestamp establishes pre-experiment status. Do not regenerate after experiments have started.",
-  "frozen_at": "2026-06-04T18:41:13.997507+00:00",
+  "frozen_at": "2026-07-13T10:14:33.863897+00:00",
   "total": 190,
   "expected_total": 190,
   "source_file": "data/core/core.jsonl",
-  "source_sha256": "6c91f502a709956d05202a6476e3fc744fb74adc78f9b78623801c2d113b330f",
+  "source_sha256": "1dbcac787550f78dc686718b6603d36117b7967435a2af45d3669efd29a644c1",
   "example_ids": [
     "BD-EMAIL-001",
     "BD-EMAIL-002",
