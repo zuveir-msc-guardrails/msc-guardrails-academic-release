@@ -208,8 +208,3 @@ The refactored academic version was validated with:
 Dataset SHA-256 matching frozen record
 ```
 
-Associated Git tag:
-
-```text
-v1.0-academic-refactor
-```
