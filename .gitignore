@@ -28,3 +28,4 @@ analysis/
 archive/
 vectorstore/
 scripts_dev/
+*.egg-info/

@@ -1,5 +1,5 @@
 """
-27 June 2026
+
 Audit C3 vs C5 detector discrepancy.
 
 Purpose:
