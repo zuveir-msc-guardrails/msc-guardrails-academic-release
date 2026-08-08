@@ -1,7 +1,7 @@
 """
 run_c1.py
 ---------------
-7 June 2026
+
 
 Runs the C1 prompt-only guardrail condition on the frozen core dataset.
 

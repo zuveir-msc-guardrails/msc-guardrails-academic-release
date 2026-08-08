@@ -1,7 +1,7 @@
 """
 run_c3.py
 ---------------
-8 June 2026
+
 
 Runs the C3 LLM-based guardrail classifier condition on the frozen core dataset.
 

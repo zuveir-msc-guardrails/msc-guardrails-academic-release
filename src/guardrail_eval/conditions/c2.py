@@ -2,8 +2,6 @@
 run_c2.py
 ---------------
 
-7 June 2026
-
 Runs the C2 heuristic-detector guardrail condition on the frozen core dataset.
 
 Purpose:
