@@ -71,7 +71,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from openai import OpenAI
-import subprocess
 
 # ── Obfuscation stress-test runner ──────────────────────────────────────────
 # This copy is segregated from the main benchmark. It reads only
