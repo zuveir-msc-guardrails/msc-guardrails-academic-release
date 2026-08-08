@@ -270,6 +270,7 @@ def run_c1(
 # ── CLI entry point preserving original behaviour ─────────────────────────────
 
 def load_core_examples(path=CORE_DATA):
+    """Load the frozen JSONL benchmark into a list of experiment examples."""
     examples = []
 
     with open(path, "r", encoding="utf-8") as f:
