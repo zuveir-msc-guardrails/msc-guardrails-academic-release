@@ -29,3 +29,4 @@ archive/
 vectorstore/
 scripts_dev/
 *.egg-info/
+ACADEMIC_RELEASE_REVIEW_AND_DEMO_GUIDE.md
