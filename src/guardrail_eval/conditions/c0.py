@@ -55,6 +55,13 @@ def build_c0_row(
     error,
     timestamp=None,
 ):
+    """
+    Build one schema-aligned C0 result row.
+
+    Computes deterministic review flags and estimated model cost from the
+    backend result. Human-scoring fields are deliberately left blank so that
+    experiment execution remains separate from final manual scoring.
+    """
     flags = build_deterministic_flags(
         example=example,
         response_text=response_text,
@@ -112,10 +119,13 @@ def run_c0(
     write_outputs=False,
 ):
     """
-    Testable C0 runner.
+    Run the unprotected C0 baseline over the supplied examples.
 
-    If llm_client has call_backend(), it is treated as a fake/test client.
-    Otherwise, llm_client is treated as an OpenAI client and call_agent() is used.
+    Each retrieved context is passed directly to the backend without a
+    detector, blocker, or sanitiser. Fake clients are supported for
+    deterministic offline tests; otherwise the normal backend agent is used.
+
+    Optionally writes schema-identical CSV and JSONL outputs.
     """
     results = []
 
@@ -188,6 +198,7 @@ def run_c0(
 # ── CLI entry point preserving original behaviour ─────────────────────────────
 
 def load_core_examples(path=CORE_DATA):
+    """Load the frozen JSONL benchmark into a list of experiment examples."""
     examples = []
 
     with open(path, "r", encoding="utf-8") as f:
@@ -201,8 +212,16 @@ def load_core_examples(path=CORE_DATA):
 
 
 def main():
-    run_start_time = time.time()
+    """
+    Run the complete C0 command-line experiment.
 
+    Verifies the frozen benchmark before execution, initialises the live model
+    client, runs all examples, writes raw experiment logs intended to remain
+    unchanged, and prints aggregate operational statistics for review.
+    """
+    run_start_time = time.time()
+    
+    # Fail fast if the benchmark has changed since it was frozen.
     subprocess.run(
         [sys.executable, "scripts/freeze_ids.py", "--verify"],
         check=True,
