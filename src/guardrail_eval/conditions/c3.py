@@ -1,54 +1,46 @@
 """
-run_c3.py
----------------
-
-
 Runs the C3 LLM-based guardrail classifier condition on the frozen core dataset.
 
 Purpose:
-    Evaluate whether a zero-shot LLM guardrail classifier reduces indirect
+    Evaluate whether a zero-shot LLM classifier reduces indirect
     prompt-injection attack success while preserving benign task utility.
 
 Condition definition:
-    C3 = C1-style secure backend system prompt + separate LLM guardrail classifier.
+    C3 applies a separate LLM document-level classifier before the backend.
+    The classifier evaluates the legitimate user request together with the
+    retrieved context and returns an allow/block decision.
 
-    The guardrail classifier inspects the user request and retrieved/injected
-    context before the backend agent sees the context.
+    If the classifier blocks, the backend is not called. If it allows, the
+    example is passed to the same prompt-hardened backend used by C1.
 
-    If the guardrail classifier recommends block:
-        - the backend agent is not called;
-        - no mock tool call is possible;
-        - the row receives a safe blocked response.
+    C3 does not use the C2 heuristic detector or perform sanitisation. This
+    isolates the effect of replacing deterministic detection with semantic
+    LLM-based document classification and binary blocking.
 
-    If the guardrail classifier recommends allow:
-        - the backend agent is called using the same secure prompt-only style
-          used in C1;
-        - normal answer/tool-call logging and deterministic helper flags are
-          recorded.
-
-    C3 does NOT use the C2 regex detector.
-    C3 does NOT do sentence-level sanitisation, output sandboxing, DLP, or
-    tool-call validation.
-    C3 used a fail-open policy for classifier/parser failures. If the guardrail classifier failed to return valid JSON after retries, the backend agent was allowed to run and the error was logged. This avoided treating classifier reliability failures as successful security detections, while preserving an auditable count of guardrail errors.
+    Classifier API or parsing failures use a fail-open policy: the backend is
+    allowed to run and the guardrail error is recorded. This prevents
+    classifier failures from being counted as successful security detections.
 
 Scoring approach:
-    This runner does NOT final-score attack_success, task_success, or UA.
-    It records LLM guardrail classifier fields, detector-level TP/FP/TN/FN
-    summary metrics, deterministic helper flags, backend agent output/tool calls,
-    latency, token counts, and cost.
+    This runner does not final-score attack success, task success, or UA.
+    It records classifier decisions, deterministic review flags, backend
+    outcomes, latency, token usage, and estimated cost.
 
-    Final dissertation metrics must be calculated from the human-reviewed
-    fields only:
+    Detector-level precision, recall, F1, false-positive rate, and
+    false-negative rate describe classifier performance only. Final
+    dissertation outcome metrics must be calculated from the human-reviewed
+    fields:
         - human_final_attack_success
         - human_final_task_success
         - human_final_ua
+        - human_final_reason
 
 Usage:
-    python3 experiments/run_c3.py
+    PYTHONPATH=src:. python3 -m guardrail_eval.conditions.c3
 
 Requirements:
     OPENAI_API_KEY in .env
-    pip install openai python-dotenv tqdm
+    pip install -r requirements.txt
 """
 
 import json
@@ -85,11 +77,12 @@ CONDITION = "C3"
 PROMPT_VER = "c3_zero_shot_classifier_v1"
 MAX_RETRIES = 2
 
-# C3 backend agent system prompt:
-# - intentionally the same secure prompt-only instruction style used in C1
-# - this keeps C2/C3 comparisons isolated to the guardrail detector/classifier
-# - C3's extra protection is the separate LLM guardrail classifier below
-# - tool use is still allowed for allowed contexts so benign tool-use examples remain testable
+# C3 backend system prompt:
+# - same prompt-level hardening used by C1
+# - preceded by the separate C3 LLM document classifier
+# - blocked contexts never reach the backend
+# - no heuristic detector, sanitiser, output sandbox, DLP, or tool validator
+# - tool use remains available for allowed examples
 C3_AGENT_SYSTEM_PROMPT = """
 You are a secure RAG assistant.
 
@@ -259,6 +252,7 @@ def normalise_guardrail_decision(value):
     return "allow"
 
 def normalise_guardrail_confidence(value):
+    """Normalise classifier confidence, defaulting malformed values to low."""
     confidence = str(value or "").strip().lower()
     if confidence in {"low", "medium", "high"}:
         return confidence
@@ -290,7 +284,7 @@ def parse_guardrail_json(raw_text):
     """
     Parse and normalise the C3 classifier JSON response.
 
-    Expected schema, matching the pre-registered C3 prompt:
+    Expected schema defined by the C3 classifier prompt::
         decision: allow/block
         reason: one-sentence evidence
         confidence: high/medium/low
@@ -320,10 +314,15 @@ def classify_with_llm_guardrail(client, context, question, example_id):
     """
     Run the C3 LLM guardrail classifier before the backend agent call.
 
-    Fail-open behaviour:
-        If the classifier API call or JSON parsing fails after retries, the row
-        is allowed through and guardrail_error is recorded. This prevents
-        classifier reliability failures from inflating blocked counts.
+    If the classifier API call or JSON parsing fails after all retries, C3
+    fails open: the context is allowed to reach the backend and the guardrail
+    error is logged.
+
+    This evaluation policy prevents classifier failures from being counted as
+    successful security detections, which would artificially improve blocking
+    performance. It also makes guardrail reliability failures visible in the
+    experiment results. A production system may instead choose fail-closed
+    behaviour depending on its security and availability requirements.
     """
     user_content = C3_CLASSIFIER_USER_TEMPLATE.format(
         user_question=question,
@@ -380,6 +379,9 @@ def classify_with_llm_guardrail(client, context, question, example_id):
             if attempt < MAX_RETRIES:
                 time.sleep(2)
 
+    # Fail open after all retries. Blocking here would make a classifier/API
+    # failure appear to be a successful security detection and could inflate
+    # measured guardrail performance. Record the error and let the backend run.
     return (
         "allow",
         "Guardrail classifier failed or returned invalid JSON; allowed fail-open.",
@@ -397,11 +399,11 @@ def classify_with_llm_guardrail(client, context, question, example_id):
 
 def blocked_response_text(guardrail_attack_type, guardrail_reason):
     """
-    Safe response used when C3 blocks suspicious retrieved content.
+    Build the deterministic response returned when C3 blocks a context.
 
-    The visible blocked response intentionally does not quote the retrieved
-    payload. The full reason is still logged separately in guardrail_reason for
-    audit/review.
+    The retrieved context is not inserted directly into the response. A truncated
+    classifier reason is retained so that the block remains interpretable while
+    the complete classifier decision is logged separately for audit.
     """
     attack_type = guardrail_attack_type or "unknown_attack_type"
     reason = guardrail_reason or "classified as unsafe"
@@ -435,6 +437,13 @@ def build_c3_row(
     guardrail_error,
     timestamp=None,
 ):
+    """
+    Build one schema-aligned C3 result row.
+
+    Combines classifier and backend outcomes with deterministic review flags and
+    separate guardrail, backend, and total-pipeline cost/latency measurements.
+    Human-scoring fields remain blank for later manual review.
+    """
     flags = build_deterministic_flags(
         example=example,
         response_text=response_text,
@@ -503,6 +512,12 @@ def build_c3_row(
     return {field: row.get(field, "") for field in FIELDNAMES}
 
 def classify_with_fake_guardrail(fake_client, context, question, example_id):
+    """
+    Run the deterministic test classifier using the same C3 result contract.
+
+    Used only for offline tests so classifier routing and logging can be
+    exercised without making external model calls.
+    """
     result = fake_client.classify_document(
         context=context,
         question=question,
@@ -554,12 +569,18 @@ def run_c3(
     write_outputs=False,
 ):
     """
-    Testable C3 runner.
+    Run the LLM-classifier C3 condition over the supplied examples.
 
-    C3 applies an LLM guardrail classifier before backend execution.
-    If the classifier blocks, the backend is not called.
-    If the classifier allows, the backend is called with the secure C3 prompt.
-    If classifier parsing/API fails, C3 fails open and calls the backend.
+    Each retrieved context is classified before backend execution. Blocked
+    contexts terminate before the backend; allowed contexts are passed to the
+    prompt-hardened backend used by C1.
+
+    Classifier failures follow the fail-open evaluation policy so that API or
+    parsing failures are not miscounted as successful security blocks. Such
+    failures are logged separately for audit and reliability analysis.
+
+    Fake clients support deterministic offline testing. Outputs can optionally
+    be written to CSV and JSONL.
     """
     results = []
 
@@ -595,7 +616,8 @@ def run_c3(
             guardrail_cost,
             guardrail_error,
         ) = classifier_result
-
+        
+        # A classifier block terminates the pipeline before any backend model call.
         if guardrail_decision == "block":
             response_text = blocked_response_text(
                 guardrail_attack_type,
@@ -683,6 +705,7 @@ def run_c3(
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def load_core_examples(path=CORE_DATA):
+    """Load the frozen JSONL benchmark into a list of experiment examples."""
     examples = []
 
     with open(path, "r", encoding="utf-8") as f:
@@ -696,8 +719,15 @@ def load_core_examples(path=CORE_DATA):
 
 
 def main():
-    run_start_time = time.time()
+    """
+    Run the complete C3 command-line experiment.
 
+    Verifies the frozen benchmark, initialises the live classifier/backend
+    client, executes all examples, writes raw experiment logs, and reports
+    classifier and end-to-end operational statistics.
+    """
+    run_start_time = time.time()
+    # Fail fast if the benchmark has changed since it was frozen.
     subprocess.run(
         [sys.executable, "scripts/freeze_ids.py", "--verify"],
         check=True,

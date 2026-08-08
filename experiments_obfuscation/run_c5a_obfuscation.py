@@ -113,13 +113,6 @@ GUARDRAIL_PROMPT_VER = "c3_zero_shot_classifier_v1"
 
 MAX_RETRIES = 2
 
-# C5a does not use payload fuzzy matching. It uses per-unit zero-shot LLM
-# classification for sanitisation. These constants are retained only because
-# some shared helper names remain in the file for comparability with C5b;
-# they are not the C5a removal mechanism.
-FUZZY_THRESHOLD = 0.75
-TAIL_CHARS_FOR_PAYLOAD_MATCH = 1800
-
 # Safety cap for sentence/unit-level classifier calls after the document-level
 # C3 classifier has already blocked a row.
 MAX_SENTENCE_UNITS = 40

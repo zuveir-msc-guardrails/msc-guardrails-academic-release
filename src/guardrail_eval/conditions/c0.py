@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from guardrail_eval.costs import estimate_cost_usd
-from guardrail_eval.text_utils import normalise_text, output_channels_text
+# from guardrail_eval.text_utils import normalise_text, output_channels_text
 from guardrail_eval.helper_flags import build_deterministic_flags
 from guardrail_eval.mock_tools import TOOL_DEFINITIONS
 from guardrail_eval.schemas import C0_FIELDNAMES as FIELDNAMES
