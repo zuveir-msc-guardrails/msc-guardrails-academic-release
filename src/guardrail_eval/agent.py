@@ -2,16 +2,16 @@
 """
 Shared backend-agent call helpers.
 
-The condition runners C0-C5 differ mainly in their prompts and guardrail
-routing, but they all need the same safe backend execution behaviour. This
-module keeps that behaviour in one place so that tool-call handling, token
-logging, retries, and fake-test execution remain consistent across conditions.
+The condition runners differ mainly in their prompts and guardrail routing,
+but they use the same backend execution behaviour. This module centralises
+tool-call handling, token logging, retries, and deterministic fake execution
+so these behaviours remain consistent across conditions.
 
 Important safety note:
-    The tools exposed to the model are local mock tools only. A proposed
-    send_email/open_url/export_file/create_report call is recorded and scored,
-    but no real email is sent, no real URL is opened, and no real file is
-    exported outside the experiment harness.
+The tools exposed to the model are local mock tools only. Proposed
+send_email/open_url/export_file/create_report calls are recorded and scored,
+but no real email is sent, no real URL is opened, and no file is exported
+outside the experiment harness.
 """
 
 from __future__ import annotations
@@ -165,7 +165,8 @@ def call_agent(
 
     return "", None, None, 0, 0, 0, 0, last_error
 
-
+# Test-only path. Fake backend outputs are not used to produce dissertation
+# experimental results.
 def call_fake_backend(
     *,
     llm_client,
@@ -178,17 +179,14 @@ def call_fake_backend(
     synthetic_private=None,
 ):
     """
-    Test seam for contract tests and fake smoke runs.
+    Deterministic backend path used by contract tests and fake smoke runs.
 
-    The fake backend mirrors the return tuple of ``call_agent()`` but uses a
-    local test double instead of making live OpenAI API calls. This lets tests
-    exercise the same condition-routing and row-building code paths without
-    spending tokens or depending on nondeterministic live model behaviour.
+    The fake backend mirrors the return contract of ``call_agent()`` without
+    making live API calls. This lets tests exercise condition routing, row
+    construction, token/cost handling, and tool-call behaviour deterministically.
 
-    The fake response may contain text, token counts, latency, and optional
-    tool-call objects. Tool calls are normalised and executed through the same
-    local mock-tool path as live calls, so tool-related scoring fields are tested
-    consistently.
+    Fake tool calls are normalised and passed through the same local mock-tool
+    execution path as live proposed tool calls.
     """
     system = system_prompt
 
