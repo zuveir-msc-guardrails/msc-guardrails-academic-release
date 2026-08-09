@@ -1,11 +1,10 @@
 # src/guardrail_eval/text_utils.py
 
 """
-Small text-normalisation helpers shared by deterministic review flags.
+Text-normalisation helpers used by deterministic review flags.
 
-These functions are intentionally simple and deterministic. They are not used
-to decide final dissertation labels; they support the ``auto_*`` helper fields
-that make manual review easier.
+These functions provide simple, auditable text handling for the `auto_*`
+review fields. They do not determine final dissertation labels.
 """
 
 import json
@@ -13,7 +12,7 @@ import json
 
 def normalise_text(value):
     """
-    Convert a value into a lowercase string for substring-style helper checks.
+    Convert a value into a normalised lowercase string for deterministic substring checks.
 
     Dictionaries and lists are serialised with ``json.dumps`` so tool-call
     argument structures can be searched in the same way as plain text outputs.
