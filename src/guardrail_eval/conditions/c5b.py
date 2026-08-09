@@ -420,6 +420,8 @@ def remove_payload_fuzzy(
     threshold: float = FUZZY_THRESHOLD,
 ) -> dict[str, Any]:
     """
+    Three sequential removal passes inside the sanitiser (block branch only);
+    these are not pipeline stages and never call a model.
     Attempt to remove the injected payload while preserving useful context.
 
     This is the C5b-specific sanitiser. It is invoked only after the C3-style
@@ -467,7 +469,7 @@ def remove_payload_fuzzy(
         if payload and score >= threshold
     }
 
-    # Pass 2: if payload matching is insufficient, inspect all segments after the
+    # Pass 2: pattern fallback, only if Pass 1 flagged nothing, inspect all segments after the
     # first for high-risk injection patterns. The first segment is excluded to
     # reduce the risk of removing the main legitimate document content.
     if not remove_indices:
@@ -516,7 +518,7 @@ def remove_payload_fuzzy(
                 "removed_preview": removed_preview,
             }
 
-    # Pass 3: inline payload/injection sentence removal for attacks not split by blank lines.
+    # Pass 3: inline payload/injection sentence removal for attacks embedded in prose withnot split by blank lines; which segment-level removal can't isolate.
     cleaned_inline, inline_removed, removed_preview = remove_inline_payload_sentences(
         original,
         payload,
