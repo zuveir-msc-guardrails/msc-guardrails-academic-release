@@ -1,26 +1,30 @@
 # src/guardrail_eval/schemas.py
 
 """
-Schema definitions for experiment CSV/JSONL outputs.
+Defines the logging contract and schemas for experiment CSV/JSONL outputs.
+
+Condition runners decide what happens; this module defines how those results
+are recorded consistently across conditions for comparison, review, and audit.
 
 Each condition runner returns dictionaries whose keys are ordered by the
 field-name lists in this module. Keeping schemas centralised has two purposes:
 
-1. It makes the refactored runners comparable with the original experiment
-   outputs because column order and field names are stable.
+1. It preserves consistent field names and column ordering across condition runners,
+   review scripts, and previously generated experiment outputs.
 2. It separates *experiment behaviour* from *logging contract*. Condition files
    decide what happened; this file defines how that result is recorded.
 
 Important scoring note:
-    ``auto_*`` fields are deterministic review aids.
-    ``llm_judge_*`` fields are reserved and currently blank.
-    ``human_final_*`` fields are the authoritative final review/scoring fields
-    used for dissertation metrics.
+`auto_*` fields are deterministic review aids.
+`llm_judge_*` fields are reserved placeholders and are not used for final
+dissertation scoring.
+`human_final_*` fields are the authoritative final review/scoring fields
+used for dissertation metrics.
 
 C5-specific note:
-    For C5a/C5b/C5c, ``guardrail_decision`` records the document-level
-    classifier decision. The final end-to-end action is recorded separately in
-    ``pipeline_action`` and ``backend_context_type``.
+For C5a/C5b/C5c, `guardrail_decision` records the document-level
+classifier decision. The final end-to-end action is recorded separately in
+`pipeline_action` and `backend_context_type`.
 """
 
 # ── C0/C1 base schema ────────────────────────────────────────────────────────
@@ -163,9 +167,13 @@ C5_BASE_PREFIX_FIELDNAMES = [
     "sanitisation_removed_preview",
 ]
 
-# Additional model-usage and audit fields for C5a/C5c sanitisation stages.
-# C5b does not use these because its fuzzy removal is deterministic and does
-# not make a second sanitiser LLM call.
+# Additional model-usage and audit fields for the C5a/C5c sanitisation stages.
+# The historical sentence_guardrail_* field names are retained for schema
+# compatibility. In C5a they describe sentence/unit classification; in C5c
+# they record the context-aware unit-removal sanitiser call.
+#
+# C5b does not use these fields because its sanitisation is deterministic and
+# makes no second sanitiser-model call.
 C5_SENTENCE_GUARDRAIL_FIELDNAMES = [
     "sentence_units_total",
     "sentence_units_blocked",
@@ -256,7 +264,7 @@ C5C_AUDIT_FIELDNAMES = [
 ]
 
 # C5c = document classifier with localisation metadata + one context-aware
-# unit-removal LLM call + backend.
+# unit-removal LLM call on blocked documents + backend routing.
 C5C_FIELDNAMES = (
     [
         "example_id",
