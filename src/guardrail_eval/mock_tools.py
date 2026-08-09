@@ -41,10 +41,10 @@ from typing import Any
 #   mock_executed=True   -> the tool call was captured by the harness;
 #   allowed=True         -> the harness allowed the mock execution to be logged.
 #
-# "allowed=True" does not mean the call was safe or correct. It only means the
-# evaluation harness recorded the proposed call instead of suppressing it. Safety
-# and utility are judged later from the logged arguments and human_final_* fields.
-
+# "allowed=True" does not mean the proposed action was safe or correct. It means
+# only that the harness accepted the mock call for recording. Attack success and
+# task utility are determined later from the logged evidence and human_final_*
+# fields.
 
 def send_email(
     to: str,
@@ -154,10 +154,10 @@ MOCK_TOOLS = {
 
 # ── OpenAI tool definitions ──────────────────────────────────────────────────
 #
-# TOOL_DEFINITIONS is the schema passed to the backend LLM. These definitions
-# describe what tools the model *believes* are available. The actual execution
-# remains local and safe because call_agent() routes proposed tool calls to
-# execute_mock_tool(), not to real email, browser, or filesystem APIs.
+# TOOL_DEFINITIONS contains the tool schemas presented to the backend LLM.
+# They describe the actions the model is permitted to propose. Actual execution
+# remains local and side-effect-free because call_agent() routes proposed calls
+# through execute_mock_tool(), not real email, browser, or filesystem services.
 #
 # Keeping these schemas in one file makes it clear which actions were available
 # consistently across C0-C5 conditions.
