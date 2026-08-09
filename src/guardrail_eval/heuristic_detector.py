@@ -2,20 +2,21 @@
 """
 Lightweight heuristic detector used by the C2 condition.
 
-C2 is the non-LLM guardrail baseline. It scans retrieved context with a small
-set of pre-registered regular-expression rules and blocks the row if any rule
-matches.
+C2 is the non-LLM guardrail baseline. It scans retrieved context with a fixed
+set of regular-expression rules and prevents the context from reaching the
+backend if any rule matches.
 
 Methodological notes:
-    - This detector is intentionally simple and deterministic.
-    - It does not call an LLM.
-    - It is expected to have limited coverage compared with C3/C5.
-    - The rule names are logged so false positives/false negatives can be
-      audited by attack type.
+- This detector is intentionally simple and deterministic.
+- It does not call an LLM.
+- It provides a lightweight lexical baseline rather than semantic
+  classification.
+- Matched rule names are logged so false positives and false negatives can
+  be audited by attack type.
 
-The detector only decides whether retrieved context should be blocked before
-the backend agent sees it. Final dissertation metrics should still be reported
-from the reviewed human_final_* fields in the experiment outputs.
+The detector determines only whether retrieved context should reach the
+backend agent. Final dissertation metrics are derived from the reviewed
+human_final_* fields in the experiment outputs.
 """
 
 from __future__ import annotations
@@ -30,9 +31,9 @@ import re
 # casually, because comparison scripts and dissertation review notes may depend
 # on the exact labels.
 #
-# The rules are deliberately broad enough to catch common indirect prompt
-# injection patterns, but they remain a lightweight baseline rather than a
-# complete security solution.
+# The rules deliberately target common indirect prompt-injection patterns while
+# remaining a lightweight lexical baseline rather than a complete security
+# mechanism.
 HEURISTIC_PATTERNS = [
     # Direct instruction-override language, for example:
     # "ignore previous instructions".
@@ -177,9 +178,9 @@ def heuristic_detect_injection(context):
                 Sorted list of stable rule names that matched.
 
     Behavioural note:
-        This detector is fail-closed only with respect to its own matched rules:
-        any match blocks the context. If no rule matches, C2 allows the backend
-        call to proceed.
+        Any matched rule causes the context to be blocked. If no rule matches,
+        C2 allows the backend call to proceed. The detector therefore provides
+        no protection against attacks that fall outside its rule set.
     """
     text = str(context or "")
     matches = []
@@ -189,8 +190,8 @@ def heuristic_detect_injection(context):
             matches.append(rule_name)
 
     if matches:
-        # De-duplicate and sort to keep logs stable even if a rule is added or
-        # evaluated in a different order later.
+        # De-duplicate and sort matched rule names so their logged ordering does not
+        # depend on pattern-evaluation order.
         return (
             "block",
             "Heuristic detector flagged suspicious retrieved content.",
@@ -202,7 +203,7 @@ def heuristic_detect_injection(context):
 
 def blocked_response_text(rule_matches):
     """
-    Build the deterministic safe response emitted when C2 blocks a row.
+    Build the deterministic response emitted when C2 blocks a row.
 
     C2 does not call the backend after a heuristic block. This response is
     logged as the agent output so the row remains schema-compatible with
