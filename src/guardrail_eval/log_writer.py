@@ -4,12 +4,11 @@
 Shared CSV/JSONL writer for experiment outputs.
 
 Each condition runner builds schema-stable rows and passes them here for
-serialisation. This module intentionally does not know about C0, C1, C2, C3,
-C5a, C5b, or C5c. Its only responsibility is to write already-built rows in two
-formats:
+serialisation. This module is condition agnostic and is responsible only for
+writing already-built rows in two formats:
 
 - CSV for manual review, spreadsheet checks, and dissertation tables.
-- JSONL for programmatic inspection and preservation of nested JSON-like text.
+- JSONL for programmatic inspection and preservation of structured row data.
 
 Keeping output writing centralised avoids each condition implementing slightly
 different CSV/JSONL behaviour.
