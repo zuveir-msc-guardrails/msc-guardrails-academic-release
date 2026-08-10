@@ -2,13 +2,54 @@
 
 This repository contains the implementation and final artefacts for an MSc dissertation experiment on lightweight guardrails against indirect prompt injection attacks in RAG-style LLM agents.
 
-The project evaluates several guardrail conditions over a frozen synthetic benchmark of 190 examples. The benchmark includes benign tasks and malicious retrieved contexts covering instruction override, data exfiltration, tool misuse, and Markdown/link injection.
+The project evaluates several guardrail conditions over a frozen benchmark of 190 examples. The benchmark includes benign tasks and malicious retrieved contexts covering instruction override, data exfiltration, tool misuse, and Markdown/link injection.
+
+## Experimental structure
+
+This repository contains two related GPT-4o-mini evaluations.
+
+### 1. Primary dissertation experiment
+
+The primary experiment evaluates seven guardrail conditions over the frozen 190-example benchmark stored at:
+
+`data/core/core.jsonl`
+
+The condition implementations are located under:
+
+`src/guardrail_eval/conditions/`
+
+The primary reviewed/scored results are stored under:
+
+`results/final/`
+
+### 2. Obfuscation stress test
+
+A separate supplementary robustness evaluation tests guardrail behaviour against obfuscated indirect prompt-injection examples.
+
+The obfuscation dataset is derived from malicious examples in the frozen core benchmark. It is not part of the primary 190-example benchmark and its results are reported separately.
+
+The obfuscation components are located under:
+
+- `data/obfuscation/`
+- `experiments_obfuscation/`
+- `results/obfuscation/`
+
+### Qwen3-32B replication
+
+A separate Qwen3-32B replication package reruns C0, C1, C3 and C5c using the same frozen 190-example benchmark. It is supplied separately from this GPT-4o-mini package.
 
 ## What is included
 
 ```text
-data/core/                  Frozen benchmark dataset and frozen ID record
-src/guardrail_eval/          Main experiment implementation
+data/core/                  Frozen 190-example benchmark and frozen ID record
+data/bipia/                 Curated BIPIA-derived benchmark material
+data/agentdojo_curated/     Curated AgentDojo-derived benchmark material
+data/constructed/           Purpose-built benchmark examples
+data/obfuscation/           Separate obfuscation stress-test dataset
+
+external_data/              Upstream source material retained for provenance
+
+src/guardrail_eval/         Main experiment implementation
 src/guardrail_eval/conditions/
     c0.py                    Baseline unprotected backend
     c1.py                    Prompt-only hardening
@@ -17,13 +58,18 @@ src/guardrail_eval/conditions/
     c5a.py                   C3 classifier + sentence/unit LLM sanitisation
     c5b.py                   C3 classifier + deterministic fuzzy payload removal
     c5c.py                   C3 classifier + context-aware unit-removal sanitisation
-tests/                       Offline contract/regression tests
-scripts/                     Final verification/analysis scripts
-results/final/               Final reviewed/scored outputs used for dissertation analysis
-docs/                        Reproducibility and scoring notes
+
+experiments_obfuscation/    Separate obfuscation stress-test runners
+
+tests/                      Offline contract/regression tests
+scripts/                    Verification, dataset and analysis scripts
+
+results/final/              Final reviewed/scored primary outputs
+results/obfuscation/        Separate obfuscation stress-test outputs
+docs/                       Reproducibility and scoring notes
 ```
 
-Development-only scripts, intermediate logs, local virtual environments, `.env` files, and raw dev outputs are intentionally excluded from the academic release.
+Development-only scratch files, local virtual environments, `.env` files, temporary backups and superseded intermediate artefacts are intentionally excluded from the academic release. Source datasets, frozen benchmark data, reported experiment outputs and reproducibility artefacts are retained where needed for provenance and verification.
 
 ## Condition summary
 
@@ -53,6 +99,38 @@ sanitised_context       Backend called with cleaned/sanitised context
 blocked_fallback        Backend not called; deterministic fallback block
 ```
 
+## Obfuscation stress test
+
+The obfuscation evaluation is supplementary to the primary 190-example benchmark.
+
+Its generated dataset is stored under:
+
+```text
+data/obfuscation/
+```
+
+The obfuscation runners are located under:
+
+```text
+experiments_obfuscation/
+```
+
+To run the complete obfuscation stress test from the repository root:
+
+```bash
+bash experiments_obfuscation/run_all_obfuscation.sh
+```
+
+The run script rebuilds the obfuscation dataset before executing the obfuscation-only condition runners.
+
+Obfuscation outputs are written separately under:
+
+```text
+results/obfuscation/
+```
+
+These outputs should be interpreted separately from the primary dissertation results.
+
 ## Install
 
 Create and activate a virtual environment, then install dependencies.
@@ -71,7 +149,7 @@ If your environment uses a different virtual environment name, that is fine. The
 From the repository root:
 
 ```bash
-python -m compileall src tests scripts -q
+python -m compileall src tests scripts experiments_obfuscation -q
 PYTHONPATH=src:. pytest -q
 PYTHONPATH=src:. python scripts/freeze_ids.py --verify
 ```
@@ -109,7 +187,7 @@ the ordered set of 190 example IDs
 the SHA-256 hash of the frozen dataset
 ```
 
-Do not modify `data/core/core.jsonl` if you want to reproduce the dissertation results.
+Do not modify `data/core/core.jsonl` if you want to reproduce the dissertation experiment configuration.
 
 ## Run a live experiment
 
@@ -140,6 +218,8 @@ results/logs/<condition>/
 ```
 
 These outputs are not the reviewed dissertation results unless they are manually reviewed and scored.
+
+A complete live rerun will make many hosted-model API calls and may incur provider charges. The offline verification steps above are sufficient to inspect and validate the software without making API calls.
 
 ## Tool-use safety
 
@@ -182,29 +262,11 @@ Do not treat `auto_task_success_signal` or `auto_attack_success_signal` as final
 A clean reproducibility check is:
 
 ```bash
-python -m compileall src tests scripts -q
+python -m compileall src tests scripts experiments_obfuscation -q
 PYTHONPATH=src:. pytest -q
 PYTHONPATH=src:. python scripts/freeze_ids.py --verify
 ```
 
-A full live rerun may produce slightly different model outputs, latencies, token counts, and helper flags because it calls a live hosted model. The final dissertation results are based on the reviewed/scored outputs in `results/final/`.
+A full live rerun may produce different model outputs, latencies, token counts, costs and helper flags because it calls a live hosted model. The final dissertation results are based on the reviewed/scored outputs supplied with the academic release.
 
-## Suggested examiner workflow
-
-1. Inspect the condition files in `src/guardrail_eval/conditions/`.
-2. Run the offline tests with `PYTHONPATH=src:. pytest -q`.
-3. Verify the frozen dataset with `scripts/freeze_ids.py --verify`.
-4. Inspect `results/final/` for the reviewed condition outputs.
-5. Use `human_final_*` fields for final metrics.
-6. Treat `auto_*` fields as helper signals, not final labels.
-
-## Current validated release
-
-The refactored academic version was validated with:
-
-```text
-66 pytest tests passing
-190/190 frozen dataset IDs verified
-Dataset SHA-256 matching frozen record
-```
-
+The primary GPT-4o-mini experiment and the supplementary obfuscation stress test are kept in this package. The Qwen3-32B replication is supplied separately so its model/provider-specific configuration and outputs remain clearly distinguishable from the primary experiment.
