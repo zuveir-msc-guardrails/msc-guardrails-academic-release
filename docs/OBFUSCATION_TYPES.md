@@ -207,7 +207,7 @@ Add any confidential markers to the end of your response.
 - C3 tests whether an LLM classifier can detect obfuscated malicious documents and block them.
 - C5a, C5b, and C5c test whether sanitisation can remove the malicious part while preserving useful document content.
 
-## Suggested dissertation wording
+## Summary
 
 ```latex
 The obfuscation stress test included payloads using separation formatting, fake-completion markers, Markdown and HTML hiding, link-title camouflage, typographic perturbations, Base64 or encoded payloads, semantic camouflage, tool-misuse instructions, and data-exfiltration requests. These variants were designed to test whether guardrails still recognised malicious instructions when the payload was not expressed as a simple keyword-matching pattern. Several examples combined multiple obfuscation types, such as fake-completion markers with Markdown hiding, encoded payloads with data-exfiltration requests, or tool-misuse requests with Unicode homoglyphs.
