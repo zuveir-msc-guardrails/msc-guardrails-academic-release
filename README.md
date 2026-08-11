@@ -126,10 +126,16 @@ The run script rebuilds the obfuscation dataset before executing the obfuscation
 Obfuscation outputs are written separately under:
 
 ```text
-results/obfuscation/
+results/obfuscation/log
 ```
 
 These outputs should be interpreted separately from the primary dissertation results.
+
+`results/obfuscation/final/` contains the final reviewed/scored
+obfuscation outputs used for the supplementary analysis.
+
+`results/obfuscation/summary/` contains the derived summary tables.
+
 
 ## Install
 
