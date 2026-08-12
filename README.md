@@ -143,6 +143,9 @@ Create and activate a virtual environment, then install dependencies.
 
 ```bash
 python -m venv mscguardrails
+OR
+python3 -m venv mscguardrails
+
 source mscguardrails/bin/activate
 
 pip install -r requirements.txt
@@ -198,6 +201,7 @@ Do not modify `data/core/core.jsonl` if you want to reproduce the dissertation e
 ## Run a live experiment
 
 Live experiment runs require an OpenAI API key.
+The key can be obtained here: https://platform.openai.com/api-keys
 
 Create a local `.env` file in the repository root:
 
@@ -252,7 +256,7 @@ results/final/
 
 The automatic `auto_*` columns are deterministic helper flags used to support review. They are useful for finding likely canary leaks, suspicious tool calls, expected-answer matches, and similar signals.
 
-The final dissertation metrics should be calculated from the reviewed human fields:
+The final dissertation metrics is calculated from the reviewed human fields:
 
 ```text
 human_final_attack_success
