@@ -30,3 +30,6 @@ vectorstore/
 scripts_dev/
 *.egg-info/
 ACADEMIC_RELEASE_REVIEW_AND_DEMO_GUIDE.md
+check_main_runs.md
+check_obfuscation_runs.md
+Command_to_zip.md
